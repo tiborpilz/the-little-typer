@@ -1,0 +1,36 @@
+#lang pie
+
+;; Addition on the natural numbers, as built up in Chapter 3 of
+;; The Little Typer. `iter-Nat` peels one `add1` off the target and
+;; applies the step once per layer.
+
+(claim step-+
+  (-> Nat Nat))
+(define step-+
+  (λ (almost-sum)
+    (add1 almost-sum)))
+
+(claim +
+  (-> Nat Nat Nat))
+(define +
+  (λ (n j)
+    (iter-Nat n
+      j
+      step-+)))
+
+;; check-same makes the file fail to run if the two sides differ,
+;; so examples double as tests.
+(check-same Nat (+ 2 2) 4)
+
+;; A tiny dependent proof: for every n, 1 + n is add1 n.
+;; The type is a Π (for-all) statement; `same` is the proof because
+;; both sides normalize to (add1 n).
+(claim one-plus=add1
+  (Π ((n Nat))
+    (= Nat (+ 1 n) (add1 n))))
+(define one-plus=add1
+  (λ (n)
+    (same (add1 n))))
+
+;; Bare expressions print their normal form when the file runs.
+(+ 2 3)
