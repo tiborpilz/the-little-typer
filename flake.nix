@@ -1,5 +1,5 @@
 {
-  description = "Pie — the dependently-typed language from *The Little Typer* — packaged for Nix, with Emacs & Neovim setups";
+  description = "Pie — the dependently-typed language from *The Little Typer* — packaged for Nix";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
@@ -21,30 +21,27 @@
       pkgsFor = system: import nixpkgs { inherit system; };
     in
     {
-      # ---- Packages -------------------------------------------------------
+      # ---- Package: the Pie build ----------------------------------------
+      # `pie` is a REPL launcher plus pie-aware `racket`/`raco` wrappers. Editor
+      # integration (Emacs/Neovim) lives with the consumer's config, not here.
       packages = forAllSystems (system:
         let
           pkgs = pkgsFor system;
           pie = pkgs.callPackage ./nix/pie.nix { inherit pie-src; };
-          pie-emacs = pkgs.callPackage ./nix/emacs.nix { inherit pie; };
-          pie-neovim = pkgs.callPackage ./nix/neovim.nix { inherit pie; };
         in
         {
-          inherit pie pie-emacs pie-neovim;
+          inherit pie;
           default = pie;
         });
 
-      # ---- Runnable apps: `nix run .#pie`, `.#emacs`, `.#neovim` ----------
+      # ---- Runnable app: `nix run .#pie` ---------------------------------
       apps = forAllSystems (system:
         let
-          pkgs = pkgsFor system;
           p = self.packages.${system};
         in
         {
           default = self.apps.${system}.pie;
           pie = { type = "app"; program = "${p.pie}/bin/pie"; };
-          emacs = { type = "app"; program = "${p.pie-emacs}/bin/pie-emacs"; };
-          neovim = { type = "app"; program = "${p.pie-neovim}/bin/pie-nvim"; };
         });
 
       # ---- Dev shell: `nix develop` --------------------------------------
@@ -55,28 +52,19 @@
         in
         {
           default = pkgs.mkShell {
-            packages = [ p.pie p.pie-emacs p.pie-neovim ];
+            packages = [ p.pie ];
             shellHook = ''
               echo ""
               echo "  Pie dev shell"
               echo "  ────────────────────────────────────────────"
-              echo "  pie          start a Pie REPL (racket -l pie -i)"
+              echo "  pie              start a Pie REPL (racket -l pie -i)"
               echo "  racket foo.pie   run a #lang pie file"
-              echo "  pie-emacs foo.pie   open in Emacs (racket-mode)"
-              echo "  pie-nvim  foo.pie   open in Neovim"
               echo ""
             '';
           };
         });
 
-      # ---- Home Manager module -------------------------------------------
-      # Usage in your HM config:
-      #   imports = [ pie.homeManagerModules.default ];
-      #   programs.pie = { enable = true; emacs.enable = true; neovim.enable = true; };
-      homeManagerModules.default = import ./nix/hm-module.nix self;
-      homeManagerModules.pie = self.homeManagerModules.default;
-
-      # Convenience: `nix fmt`-friendly and overlay for other flakes.
+      # Overlay for other flakes: adds `pkgs.pie`.
       overlays.default = final: prev: {
         pie = final.callPackage ./nix/pie.nix { inherit pie-src; };
       };
